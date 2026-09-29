@@ -2,8 +2,10 @@ import cv2 as cv
 from typing import List, Dict, Tuple
 from math import cos, sin, pi
 import numpy as np
+from config import latest_processed_data
+from process_data import finger_in_ring_sector
 
-def handle_frame(frame, latest_processed_data: Dict, chords):
+def handle_frame(frame, chords):
     if latest_processed_data["gesture"] is not None:
         cv.putText(
             frame,
@@ -17,12 +19,15 @@ def handle_frame(frame, latest_processed_data: Dict, chords):
         cv.circle(frame, (latest_processed_data["index_tip_x"], latest_processed_data["index_tip_y"]), 20, (0, 0, 255), 5)
         cv.circle(frame, (latest_processed_data["index_tip_x"], latest_processed_data["index_tip_y"]), 10, (0, 0, 255), 3)
 
-    draw_chord_circle(frame, chords, latest_processed_data["window_width"], latest_processed_data["window_height"])
+    draw_chord_circle(frame, chords)
 
     cv.imshow('Gesture Player', frame)
 
 
-def draw_chord_circle(frame, chords: List[str], window_width, window_height):
+def draw_chord_circle(frame, chords: List[str]):
+
+    window_height = latest_processed_data["window_height"]
+    window_width = latest_processed_data["window_width"]
 
     FONT_FACE = cv.FONT_HERSHEY_SIMPLEX
     FONT_SCALE = 1.5
@@ -33,9 +38,9 @@ def draw_chord_circle(frame, chords: List[str], window_width, window_height):
     num_chords = len(chords)
     sector_angle = 360.0 / num_chords
 
-    RADIUS = max(100, int(window_height * 3 / 10))
-    THICKNESS = max(20, int(window_height / 10))
-    CENTER = (int(window_width * 2 / 3), window_height // 2)
+    RADIUS = max(100, int(window_height * 2.5 / 10))
+    THICKNESS = max(20, int(window_height * 1.2/ 10))
+    CENTER = (int(window_width * 2.2 / 3), int(window_height * 2 / 5))
 
     """
     note on angles.
@@ -47,28 +52,32 @@ def draw_chord_circle(frame, chords: List[str], window_width, window_height):
 
     sector_angles = []
     for i in range(num_chords):
-        start_angle = shift_degree(sector_angle/2 + i * sector_angle)
-        end_angle = shift_degree(sector_angle / 2 + (i + 1) * sector_angle)
-        sector_angles.append([start_angle, end_angle])
+
+
+        sector_angles.append([
+            shift_degree(sector_angle/2 + i * sector_angle), #start angle
+            shift_degree(sector_angle / 2 + (i + 1) * sector_angle) #end angle
+        ])
 
         #covers case where the angles cross 0 degrees
-        if start_angle > end_angle:
-            start_angle = start_angle - 360
-            draw_ring_sector(
-                frame,
-                start_angle, #start angle
-                end_angle, #end angle
-                RADIUS + THICKNESS, RADIUS - THICKNESS, CENTER,
-                (0, 0, 60), window_width, window_height
-            )
-        else:
-            draw_ring_sector(
-                frame,
-                start_angle,  # start angle
-                end_angle,  # end angle
-                RADIUS + THICKNESS, RADIUS - THICKNESS, CENTER,
-                (0, 0, 60), window_width, window_height
-            )
+        if sector_angles[i][0] > sector_angles[i][1]:
+            sector_angles[i][0] = sector_angles[i][0] - 360
+
+        color = (255, 178, 102)
+        if finger_in_ring_sector(CENTER, RADIUS + THICKNESS, RADIUS - THICKNESS,  sector_angles[i][0], sector_angles[i][1]):
+            print(f"Selected chord {chords[i]}")
+            latest_processed_data["selected_chord"] = chords[i]
+            color = (51, 153, 255)
+
+
+        draw_ring_sector(
+            frame,
+            sector_angles[i][0], #start angle
+            sector_angles[i][1], #end angle
+            RADIUS + THICKNESS, RADIUS - THICKNESS, CENTER,
+            color, window_width, window_height
+        )
+
 
 
 

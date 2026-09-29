@@ -2,7 +2,7 @@ import functools
 import time
 import cv2 as cv
 import mediapipe as mp
-from process_data import process_data
+from process_data import process_recognizer_data
 from handle_frame import handle_frame
 # Open the default camera
 cam = cv.VideoCapture(0)
@@ -21,19 +21,9 @@ GestureRecognizerOptions = mp.tasks.vision.GestureRecognizerOptions
 GestureRecognizerResult = mp.tasks.vision.GestureRecognizer
 VisionRunningMode = mp.tasks.vision.RunningMode
 
-# Create a gesture recognizer instance with the live stream mode:
-latest_processed_data = {
-    "gesture": None,
-    "confidence": None,
-    "index_tip_x": None,
-    "index_tip_y": None,
-    "window_width": 1920,
-    "window_height": 1080,
-}
 
 chords = ["A-", "D⁷", "GΔ⁷", "CΔ⁷", "F#", "B⁷", "E-", "M"]
 
-callback = functools.partial(process_data, latest_processed_data=latest_processed_data)
 
 options = GestureRecognizerOptions(
     base_options=BaseOptions(
@@ -41,7 +31,7 @@ options = GestureRecognizerOptions(
     ),
     num_hands=2,
     running_mode=VisionRunningMode.LIVE_STREAM,
-    result_callback=callback)
+    result_callback=process_recognizer_data,)
 
 with GestureRecognizer.create_from_options(options) as recognizer:
 
@@ -59,18 +49,11 @@ with GestureRecognizer.create_from_options(options) as recognizer:
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
             recognizer.recognize_async(mp_image, t)
 
-
-
-
-
             # Display the captured frame
-            handle_frame(frame, latest_processed_data, chords)
+            handle_frame(frame, chords)
 
 
-
-
-
-        # Press 'q' to exit the loop
+        # Press 'esc' to exit the loop
         if cv.waitKey(1) & 0xFF == 27:
             break
 
