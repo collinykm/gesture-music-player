@@ -1,6 +1,7 @@
 import cv2 as cv
 from typing import List, Dict, Tuple
 from math import cos, sin, pi
+import numpy as np
 
 def handle_frame(frame, latest_processed_data: Dict, chords):
     if latest_processed_data["gesture"] is not None:
@@ -32,9 +33,9 @@ def draw_chord_circle(frame, chords: List[str], window_width, window_height):
     num_chords = len(chords)
     sector_angle = 360.0 / num_chords
 
-    radius = max(100, int(window_height * 3 / 10))
-    thickness = max(20, int(window_height / 10))
-    center = (int(window_width * 2 / 3), window_height // 2)
+    RADIUS = max(100, int(window_height * 3 / 10))
+    THICKNESS = max(20, int(window_height / 10))
+    CENTER = (int(window_width * 2 / 3), window_height // 2)
 
     """
     note on angles.
@@ -44,24 +45,48 @@ def draw_chord_circle(frame, chords: List[str], window_width, window_height):
     Hence the (degree - 90) % 360
     """
 
-    start_end_sector_angles = []
+    sector_angles = []
     for i in range(num_chords):
-        start_end_sector_angles.append([shift_degree(sector_angle/2 + i * sector_angle), shift_degree(sector_angle/2 + (i + 1) * sector_angle)])
+        start_angle = shift_degree(sector_angle/2 + i * sector_angle)
+        end_angle = shift_degree(sector_angle / 2 + (i + 1) * sector_angle)
+        sector_angles.append([start_angle, end_angle])
 
+        #covers case where the angles cross 0 degrees
+        if start_angle > end_angle:
+            start_angle = start_angle - 360
+            draw_ring_sector(
+                frame,
+                start_angle, #start angle
+                end_angle, #end angle
+                RADIUS + THICKNESS, RADIUS - THICKNESS, CENTER,
+                (0, 0, 60), window_width, window_height
+            )
+        else:
+            draw_ring_sector(
+                frame,
+                start_angle,  # start angle
+                end_angle,  # end angle
+                RADIUS + THICKNESS, RADIUS - THICKNESS, CENTER,
+                (0, 0, 60), window_width, window_height
+            )
+
+
+
+
+    #----------------- handling text -----------------#
     text_angles = []
     for i in range(num_chords):
         text_angles.append(shift_degree(i * sector_angle))
 
     text_coords = []
     for i in range(num_chords):
-        x = cos(text_angles[i] / 360 * 2 * pi) * radius + center[0]
-        y = sin(text_angles[i] / 360 * 2 * pi) * radius + center[1]
+        x = cos(text_angles[i] / 360 * 2 * pi) * RADIUS + CENTER[0]
+        y = sin(text_angles[i] / 360 * 2 * pi) * RADIUS + CENTER[1]
 
         #calculate the offset needed to center text
         textSize = cv.getTextSize(chords[i], FONT_FACE,FONT_SCALE,FONT_THICKNESS)[0]
         offset_x = textSize[0]/2
         offset_y = textSize[1]/2
-
         cv.putText(
             frame,
             chords[i],
@@ -74,8 +99,42 @@ def draw_chord_circle(frame, chords: List[str], window_width, window_height):
 
 
 
-    cv.circle(frame, center, radius + thickness, (0, 0, 0), 5)
-    cv.circle(frame, center, radius - thickness, (0, 0, 0), 5)
+
+
+
+
+def draw_ring_sector(frame, start_angle, end_angle, outer_radius, inner_radius, center, color, window_width, window_height):
+    mask = np.zeros((window_height, window_width), dtype=np.uint8)
+
+    #outer ellipse
+    cv.ellipse(
+        mask,
+        center,
+        (outer_radius, outer_radius),
+        0,
+        start_angle,
+        end_angle,
+        255,
+        -1
+    )
+
+    cv.ellipse(
+        mask,
+        center,
+        (inner_radius, inner_radius),
+        0,
+        start_angle - 10,
+        end_angle + 10,
+        0,
+        -1
+    )
+
+    frame[mask==255] = color
+
+    contours, hierarchy = cv.findContours(mask, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+    outline_color = (255, 255, 255)  # White outline (BGR)
+    outline_thickness = 1
+    cv.drawContours(frame, contours, -1, outline_color, outline_thickness)
 
 
 

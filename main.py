@@ -31,7 +31,7 @@ latest_processed_data = {
     "window_height": 1080,
 }
 
-chords = ["A-", "D⁷", "GΔ⁷", "CΔ⁷", "F#", "B⁷", "E-"]
+chords = ["A-", "D⁷", "GΔ⁷", "CΔ⁷", "F#", "B⁷", "E-", "M"]
 
 callback = functools.partial(process_data, latest_processed_data=latest_processed_data)
 

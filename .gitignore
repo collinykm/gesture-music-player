@@ -1,2 +1,4 @@
 .venv
 temp.py
+.DS_Store
+.idea/
