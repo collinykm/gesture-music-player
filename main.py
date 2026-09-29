@@ -27,11 +27,11 @@ latest_processed_data = {
     "confidence": None,
     "index_tip_x": None,
     "index_tip_y": None,
-    "window_width": None,
-    "window_height": None,
+    "window_width": 1920,
+    "window_height": 1080,
 }
 
-chords = ["A-", "D7", "Gmaj7", "Cmaj7", "F#6", "B7", "E-"]
+chords = ["A-", "D⁷", "GΔ⁷", "CΔ⁷", "F#", "B⁷", "E-"]
 
 callback = functools.partial(process_data, latest_processed_data=latest_processed_data)
 
@@ -64,7 +64,7 @@ with GestureRecognizer.create_from_options(options) as recognizer:
 
 
             # Display the captured frame
-            handle_frame(frame, latest_processed_data)
+            handle_frame(frame, latest_processed_data, chords)
 
 
 
