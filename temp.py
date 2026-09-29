@@ -1,41 +1,50 @@
-# Source - https://stackoverflow.com/a/22920595
-# Posted by Kimmo
-# Retrieved 2026-09-29, License - CC BY-SA 3.0
-
 import cv2
 import numpy as np
 
-# Colors (B, G, R)
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
+# 1. Initialize canvas (e.g., dark blue background)
+height, width = 500, 500
+image = np.full((height, width, 3), (40, 20, 20), dtype=np.uint8)
 
+# Center and radius parameters
+center = (250, 250)
+start_angle = 30   # Start angle in degrees
+end_angle = 330    # End angle in degrees
 
-def create_blank(width, height, color=(0, 0, 0)):
-    """Create new image(numpy array) filled with certain color in BGR"""
-    image = np.zeros((height, width, 3), np.uint8)
-    # Fill image with color
-    image[:] = color
+outer_radius = 180  # Size of Shape 1 (Pizza)
+inner_radius = 80   # Size of Shape 2 (Bite mark)
 
-    return image
+# 2. Create a single-channel mask (black background)
+mask = np.zeros((height, width), dtype=np.uint8)
 
+# 3. Draw Shape 1: Outer sector (White)
+cv2.ellipse(
+    mask,
+    center=center,
+    axes=(outer_radius, outer_radius),
+    angle=0,
+    startAngle=start_angle,
+    endAngle=end_angle,
+    color=255,
+    thickness=-1  # -1 fills the shape
+)
 
-def draw_half_circle_rounded(image):
-    height, width = image.shape[0:2]
-    # Ellipse parameters
-    radius = 100
-    center = (width // 2, height - 25)
-    axes = (radius, radius)
-    angle = 0
-    startAngle = 0
-    endAngle = 180
-    thickness = 10
+# 4. Draw Shape 2: Inner sector (Black) - Subtracts from the mask
+cv2.ellipse(
+    mask,
+    center=center,
+    axes=(inner_radius, inner_radius),
+    angle=0,
+    startAngle=start_angle,
+    endAngle=end_angle,
+    color=0,
+    thickness=-1  # Cuts out the inner region
+)
 
-    # http://docs.opencv.org/modules/core/doc/drawing_functions.html#ellipse
-    cv2.ellipse(image, center, axes, angle, startAngle, endAngle, BLACK, thickness)
+# 5. Apply the subtractive mask to color the final shape (e.g., golden yellow)
+shape_color = (0, 215, 255)  # BGR
+image[mask == 255] = shape_color
 
-
-# Create new blank 300x150 white image
-width, height = 300, 150
-image = create_blank(width, height, color=WHITE)
-draw_half_circle_rounded(image)
-cv2.imwrite('half_circle_rounded.jpg', image)
+# Display result
+cv2.imshow("Subtracted Shape", image)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
